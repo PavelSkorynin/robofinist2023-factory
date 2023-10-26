@@ -17,7 +17,7 @@ public:
 	SetPowerProcess(MotorPtr motor, int power);
 	virtual ~SetPowerProcess() = default;
 
-	void onCompleted(time_t secondsFromStart) override;
+	void onStarted(time_t secondsFromStart) override;
 	bool isCompleted(time_t secondsFromStart) override;
 
 protected:

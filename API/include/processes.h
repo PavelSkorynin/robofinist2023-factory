@@ -24,3 +24,4 @@
 #include "processes/WaitEncoderProcess.hpp"
 #include "processes/BenchmarkProcess.hpp"
 #include "processes/MoveByEncoderAndStopProcess.hpp"
+#include "processes/MoveToEncoderAndStopProcess.hpp"

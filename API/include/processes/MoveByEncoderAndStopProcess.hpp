@@ -7,29 +7,20 @@
 
 #pragma once
 
-#include <Process.h>
-#include <Motor.h>
+#include "MoveToEncoderAndStopProcess.hpp"
 
 namespace ev3 {
 
-class MoveByEncoderAndStopProcess: public Process {
+class MoveByEncoderAndStopProcess: public MoveToEncoderAndStopProcess {
 public:
 	/*
-	 * Запускает мотор в движение на определённое число градусов. Останавливает мотор по заверщении.
+	 * Запускает мотор в движение на определённое число градусов. Останавливает мотор по завершении.
 	 */
-	MoveByEncoderAndStopProcess(MotorPtr motor, int deltaEncoder, int power);
-	virtual ~MoveByEncoderAndStopProcess() = default;
+	MoveByEncoderAndStopProcess(MotorPtr motor, int deltaEncoder, int power, std::shared_ptr<PID> pid = nullptr);
 
-	virtual void update(time_t secondsFromStart) override;
 	virtual void onStarted(time_t secondsFromStart) override;
-	virtual void onCompleted(time_t secondsFromStart) override;
-	virtual bool isCompleted(time_t secondsFromStart) override;
-
 protected:
-	MotorPtr motor;
 	int deltaEncoder;
-	int power;
-	time_t startTime;
 };
 
 } /* namespace ev3 */
