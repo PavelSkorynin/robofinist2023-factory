@@ -66,7 +66,7 @@ std::shared_ptr<Process> Move::moveByEncoder(int leftDistance, int rightDistance
 std::shared_ptr<Process> Move::rotateToLineLeft(int minDistance, bool stop) {
 	movePID->reset();
 	return MoveByEncoderOnArcProcess(leftMotor, rightMotor, -minDistance, minDistance, power)
-					>> (MoveByEncoderOnArcProcess(leftMotor, rightMotor, -INT_MAX/4, INT_MAX/4, std::max(power / 4, 20))
+					>> (MoveByEncoderOnArcProcess(leftMotor, rightMotor, -INT_MAX/4, INT_MAX/4, power)
 							& WaitLineProcess(leftLineSensor))
 					>> alignToLine(stop);
 
@@ -75,7 +75,7 @@ std::shared_ptr<Process> Move::rotateToLineLeft(int minDistance, bool stop) {
 std::shared_ptr<Process> Move::rotateToLineRight(int minDistance, bool stop) {
 	movePID->reset();
 	return MoveByEncoderOnArcProcess(leftMotor, rightMotor, minDistance, -minDistance, power)
-					>> (MoveByEncoderOnArcProcess(leftMotor, rightMotor, INT_MAX/4, -INT_MAX/4, std::max(power / 4, 20))
+					>> (MoveByEncoderOnArcProcess(leftMotor, rightMotor, INT_MAX/4, -INT_MAX/4, power)
 							& WaitLineProcess(rightLineSensor))
 					>> alignToLine(stop);
 }
@@ -83,8 +83,8 @@ std::shared_ptr<Process> Move::rotateToLineRight(int minDistance, bool stop) {
 std::shared_ptr<Process> Move::alignToLine(bool stop) {
 	auto alignProcess = LambdaProcess([this](float timestamp) {
 		float delta = rightLineSensor->getValue() - leftLineSensor->getValue();
-		rightMotor->setPower(delta / 4);
-		leftMotor->setPower(-delta / 4);
+		rightMotor->setPower(delta / 2);
+		leftMotor->setPower(-delta / 2);
 		return abs(delta) > 5;
 	}) & WaitTimeProcess(0.5f);
 	if (stop) {

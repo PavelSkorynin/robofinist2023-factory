@@ -6,11 +6,11 @@
 #include <sstream>
 
 inline int toIndex(const Node& node, Direction dir) {
-	return dir * 8 * 4 + node.y * 8 + node.x;
+	return dir * COLS * ROWS + node.y * COLS + node.x;
 }
 
 inline std::pair<Node, Direction> fromIndex(int index) {
-	return std::make_pair<Node, Direction>({index % 8, (index / 8) % 4}, Direction(index / 8 / 4));
+	return std::make_pair<Node, Direction>({index % COLS, (index / COLS) % ROWS}, Direction(index / COLS / ROWS));
 }
 
 //
@@ -48,29 +48,6 @@ struct VisitedNode {
 	inline VisitedNode turnAround() const {
 		return {Node(node), Direction((direction + 2) % 4), cost + costForAction[TURN_AROUND], TURN_AROUND};
 	}
-
-//	inline std::optional<VisitedNode> forwardReverse() const {
-//		if ((direction == LEFT && node.x >= COLS - 1)
-//				|| (direction == RIGHT && node.x <= 0)
-//				|| (direction == DOWN && node.y >= ROWS - 1)
-//				|| (direction == UP && node.y <= 0)) {
-//			return std::nullopt;
-//		}
-//		VisitedNode v = {{node.x - dx[direction], node.y - dy[direction]}, direction, cost - costForAction[FORWARD]};
-//		return std::make_optional<VisitedNode>(std::move(v));
-//	}
-//
-//	inline VisitedNode turnLeftReverse() const {
-//		return {Node(node), Direction((direction + 1) % 4), cost - costForAction[TURN_LEFT]};
-//	}
-//
-//	inline VisitedNode turnRightReverse() const {
-//		return {Node(node), Direction((direction + 3) % 4), cost - costForAction[TURN_RIGHT]};
-//	}
-//
-//	inline VisitedNode turnAroundReverse() const {
-//		return {Node(node), Direction((direction + 2) % 4), cost - costForAction[TURN_AROUND]};
-//	}
 };
 
 bool operator<(const VisitedNode &a, const VisitedNode &b) {
@@ -115,28 +92,11 @@ void insertVisitedIfPossible(VisitedNode v, const std::map<Node, NodeType> &node
 
 Graph::Graph() {
 	// по умолчанию все узлы неизвестны
-	for (int x = 0; x < 8; ++x) {
-		for (int y = 0; y < 4; ++y) {
-			nodeTypes[{x, y}] = UNKNOWN;
+	for (int x = 0; x < COLS; ++x) {
+		for (int y = 0; y < ROWS; ++y) {
+			nodeTypes[{x, y}] = EMPTY;
 		}
 	}
-
-	// проходим по периметру
-	for (int x = 1; x < 7; ++x) {
-		nodeTypes[{x, 0}] = EMPTY;
-		nodeTypes[{x, 3}] = EMPTY;
-	}
-	nodeTypes[{0, 1}] = EMPTY;
-	nodeTypes[{0, 2}] = EMPTY;
-	nodeTypes[{7, 1}] = EMPTY;
-	nodeTypes[{7, 2}] = EMPTY;
-
-	// коричневые квадраты
-	nodeTypes[{3, 2}] = EMPTY;
-	nodeTypes[{4, 1}] = EMPTY;
-
-	// задаём левый нижний угол как пустой, так как извлекаем из него кубик в первую очередь
-	nodeTypes[{0, 0}] = EMPTY;
 }
 
 NodeType Graph::getNodeType(const Node& node) const {
@@ -184,10 +144,10 @@ std::pair<std::vector<Action>, Direction> Graph::pathFromNodeToNode(Node fromNod
 		insertVisitedIfPossible(v.turnAround(), nodeTypes, visited, costs, actions, toNode);
 	}
 
-	for (int k = 0; k < 4; ++k) {
+	for (int k = 0; k < 4; ++k) { // directions
 		fOut << std::endl;
-		for (int y = 3; y >= 0; y--) {
-			for (int x = 0; x < 8; ++x) {
+		for (int y = COLS - 1; y >= 0; y--) {
+			for (int x = 0; x < ROWS; ++x) {
 				fOut << costs[toIndex({x, y}, Direction(k))] << '\t';
 			}
 			fOut << std::endl;
@@ -199,8 +159,8 @@ std::pair<std::vector<Action>, Direction> Graph::pathFromNodeToNode(Node fromNod
 
 	for (int k = 0; k < 4; ++k) {
 		fOut << std::endl;
-		for (int y = 3; y >= 0; y--) {
-			for (int x = 0; x < 8; ++x) {
+		for (int y = COLS - 1; y >= 0; y--) {
+			for (int x = 0; x < ROWS; ++x) {
 				fOut << actions[toIndex({x, y}, Direction(k))] << '\t';
 			}
 			fOut << std::endl;

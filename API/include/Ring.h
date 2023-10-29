@@ -54,6 +54,10 @@ public:
 		}
 	}
 
+	T& firstValue() {
+		return *first;
+	}
+
 	static const int capacity = N;
 
 private:
