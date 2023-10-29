@@ -66,7 +66,7 @@ std::shared_ptr<Process> Move::moveByEncoder(int leftDistance, int rightDistance
 std::shared_ptr<Process> Move::rotateToLineLeft(int minDistance, bool stop) {
 	movePID->reset();
 	return MoveByEncoderOnArcProcess(leftMotor, rightMotor, -minDistance, minDistance, power)
-					>> (MoveByEncoderOnArcProcess(leftMotor, rightMotor, -INT_MAX/4, INT_MAX/4, power)
+					>> (MoveByEncoderOnArcProcess(leftMotor, rightMotor, -INT_MAX/4, INT_MAX/4, power / 2)
 							& WaitLineProcess(leftLineSensor))
 					>> alignToLine(stop);
 
@@ -75,7 +75,7 @@ std::shared_ptr<Process> Move::rotateToLineLeft(int minDistance, bool stop) {
 std::shared_ptr<Process> Move::rotateToLineRight(int minDistance, bool stop) {
 	movePID->reset();
 	return MoveByEncoderOnArcProcess(leftMotor, rightMotor, minDistance, -minDistance, power)
-					>> (MoveByEncoderOnArcProcess(leftMotor, rightMotor, INT_MAX/4, -INT_MAX/4, power)
+					>> (MoveByEncoderOnArcProcess(leftMotor, rightMotor, INT_MAX/4, -INT_MAX/4, power / 2)
 							& WaitLineProcess(rightLineSensor))
 					>> alignToLine(stop);
 }

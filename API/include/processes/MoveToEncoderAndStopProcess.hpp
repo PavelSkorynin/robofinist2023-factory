@@ -28,6 +28,8 @@ public:
 	virtual bool isCompleted(time_t secondsFromStart) override;
 
 	void setPID(std::shared_ptr<PID> pid);
+	void setPowerThreshold(int threshold);
+	void setEncoderThreshold(int threshold);
 
 protected:
 	MotorPtr motor;
@@ -35,6 +37,8 @@ protected:
 	int power;
 	std::shared_ptr<PID> pid;
 
+	int powerThreshold;
+	int encoderThreshold;
 };
 
 } /* namespace ev3 */
