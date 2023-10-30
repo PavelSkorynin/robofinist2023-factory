@@ -73,10 +73,6 @@ void initBarrels();
 void setupSensors();
 void setupMotors();
 
-//void goToStartPosition();
-//void findFirstBarrel();
-//std::pair<Node, bool> grabFirstBarrel();
-
 int findNearestBarrel();
 std::vector<Action> findPathToBarrel(Node position);
 int findNextBarrel(int barrel);
@@ -104,7 +100,6 @@ int main()
 	move = std::make_shared<Move>(eva, leftMotor, rightMotor, leftLight, rightLight);
 	move->setPower(power);
 
-//	calibration();
 //	debugSomething();
 
 	eva->setupLogger("/home/root/lms2012/prjs/robofinist2023/run.txt");
@@ -114,63 +109,39 @@ int main()
 	currentPosition = {2, 0};
 	currentDirection = Direction::LEFT;
 
-	for (int i = 0; i < 4; ++i) {
-		int row = i % 2;
+	int row = 2;
+	currentPosition = {2, row};
+	currentDirection = Direction::LEFT;
+	for (int i = 0; i < 6; ++i) {
 		auto actions = findPathToBarrel({0, row});
 		goToNode(actions, false, true);
-		eva->runProcess(grabber->halfOpen());
+		eva->runProcess(grabber->halfOpen() & std::make_shared<WaitTimeProcess>(1.0f));
 		waitBarrel();
 		grabBarrel();
+		int color = -3;
+		for (int j = 0; j < 5; ++j) {
+			auto getColorProcess = std::make_shared<GetColorProcess>(colorSensor, colors, 0.5f);
+			eva->runProcess(getColorProcess);
+			color = getColorProcess->getColor();
+			if (color != -3) {
+				break;
+			}
+		}
+		if (color == -3) {
+			color = -1;
+		}
+		int target = colorToCell.find(color)->second;
+
 		currentPosition = {0, row};
 		currentDirection = Direction::LEFT;
-		actions = findPathToStore({2, row});
-		goToNode(actions, i / 2 == 1, false);
+		actions = findPathToStore({2, target % 3});
+		goToNode(actions, target / 3 == 1, false);
 		putBarrelShort();
 		debugWait(5);
-		currentPosition = {2, row};
+		currentPosition = {2, target % 3};
 		currentDirection = Direction::LEFT;
 	}
 
-/*
-
-	for (int i = 0; i < NUMBER_OF_BARRELS; ++i) {
-		eva->wait(1);
-		int barrel = findNearestBarrel();
-//		eva->lcdPrintf(Color::BLACK, "%d ", barrel);
-		Node barrelNode = {0, barrel / 3};
-		auto actions = findPathToBarrel(barrelNode);
-
-//		eva->lcdPrintf(Color::BLACK, "goB ");
-		goToNode(actions, false, true);
-//		eva->lcdPrintf(Color::BLACK, "findB ");
-		eva->runProcess(crane->down());
-		currentPosition = barrelNode;
-		currentDirection = Direction::LEFT;
-		int distanceToBarrel = findNextBarrel(barrel);
-		auto target = grabNextBarrel(distanceToBarrel);
-
-		if (USE_CHECK) {
-			int barrelToGrab = 0;
-			for(; barrelToGrab < (int)barrels.size(); ++barrelToGrab) {
-				if (barrels[barrelToGrab] == BarrelState::barrel) {
-					barrels[barrelToGrab] = BarrelState::empty;
-					break;
-				}
-			}
-			checkNextBarrel(barrelToGrab);
-		}
-		outputBarrels();
-
-//		eva->lcdPrintf(Color::BLACK, "findS ");
-		actions = findPathToStore(target.first);
-//		eva->lcdPrintf(Color::BLACK, "doS ");
-		goToNode(actions, target.second, false);
-		currentPosition = target.first;
-		currentDirection = Direction::LEFT;
-		putBarrel();
-		barrelsDone++;
-	}
-*/
 	return 0;
 }
 
@@ -320,7 +291,11 @@ void goToNode(const std::vector<Action>& actions, bool upperShelf, bool barrel) 
 		bool stop = i == actions.size() - 1 || actions[i] != actions[i + 1];
 		switch (actions[i]) {
 		case Action::FORWARD:
-			nextMove = move->moveOnLine(500, false) >> move->moveOnLineToCross(155, stop);
+			if (barrel && stop) {
+				nextMove = move->moveOnLine(500, false) >> move->moveOnLineToCross(100, stop);
+			} else {
+				nextMove = move->moveOnLine(500, false) >> move->moveOnLineToCross(155, stop);
+			}
 			break;
 		case Action::TURN_LEFT:
 			nextMove = move->rotateToLineLeft(50, stop);
@@ -366,15 +341,11 @@ int findNearestBarrel() {
 int findNextBarrel(int firstBarrel) {
 	if (USE_CHECK) {
 		int angle = ((firstBarrel % 3) - 1) * ONE_BARREL_ANGLE;
-	//	eva->lcdPrintf(Color::BLACK, " fr");
-	//	eva->wait(3);
 		eva->runProcess((std::make_shared<StopByEncoderOnArcProcess>(leftMotor, rightMotor, angle, -angle, power / 2)
 				>> grabber->halfOpen())
 				>> WaitTimeProcess(0.5f));
 		if (barrels[firstBarrel] != BarrelState::barrel) {
 			int startEncoder = leftMotor->getEncoder();
-	//		eva->lcdPrintf(Color::BLACK, " ff");
-	//		eva->wait(3);
 			auto maxAngle = (3 - (firstBarrel % 3)) * ONE_BARREL_ANGLE + ONE_BARREL_ANGLE / 2;
 			eva->runProcess((StopByEncoderOnArcProcess(leftMotor, rightMotor, maxAngle, -maxAngle, 30)
 					& LambdaProcess([&](ev3::time_t timestamp) {
@@ -382,8 +353,6 @@ int findNextBarrel(int firstBarrel) {
 			})) >> (StopProcess(leftMotor) | StopProcess(rightMotor)));
 			int distanceToBarrel = distSensor->getValue() * 2.5f;
 			int delta = leftMotor->getEncoder() - startEncoder;
-	//		eva->lcdPrintf(Color::BLACK, " coB");
-	//		eva->wait(3);
 			eva->runProcess(StopByEncoderOnArcProcess(leftMotor, rightMotor, -ONE_BARREL_ANGLE / 4, ONE_BARREL_ANGLE / 4, 30));
 			int deltaBarrel = (delta) / ONE_BARREL_ANGLE;
 			if (deltaBarrel < 0) {
@@ -430,22 +399,14 @@ int findNextBarrel(int firstBarrel) {
 			return findNextBarrel(currentPosition.y * 3);
 		} else {
 			int distanceToBarrel = distSensor->getValue() * 2.7f;
-//			eva->runProcess(StopByEncoderOnArcProcess(leftMotor, rightMotor, -ONE_BARREL_ANGLE / 4, ONE_BARREL_ANGLE / 4, 30));
 			return distanceToBarrel;
 		}
 	}
 }
 
 std::pair<Node, bool> grabNextBarrel(int distToMove) {
-//	if (USE_CHECK) {
-//		barrels[nextBarrel] = BarrelState::empty;
-//	}
-
 	// открываем захват
 	eva->runProcess(grabber->open());
-
-//	eva->lcdPrintf(Color::BLACK, "%d ", nextBarrel);
-//	eva->wait(5);
 
 	if (distToMove < 10) {
 		distToMove = 0;
@@ -455,16 +416,10 @@ std::pair<Node, bool> grabNextBarrel(int distToMove) {
 			>> (std::make_shared<StopByEncoderOnArcProcess>(leftMotor, rightMotor, 50, 50, 50) | grabber->close());
 	eva->runProcess(moveToBarrel >> grabber->close());
 
-//	eva->lcdPrintf(Color::BLACK, " closed");
-//	eva->wait(3);
-
 	auto getColorProcess = std::make_shared<GetColorProcess>(colorSensor, colors, 0.2f);
 	// возвращаемся к перекрёстку
 	eva->runProcess(std::make_shared<StopByEncoderOnArcProcess>(leftMotor, rightMotor, -200 - distToMove, -200 - distToMove, 50)
 			| getColorProcess);
-
-//	eva->lcdPrintf(Color::BLACK, " ret");
-//	eva->wait(3);
 
 	int color = getColorProcess->getColor();
 	if (color < -2 || color > 3) {
@@ -549,7 +504,7 @@ void waitBarrel() {
 
 void grabBarrel() {
 	const int dist = 200;
-	eva->runProcess(std::make_shared<StopByEncoderOnArcProcess>(leftMotor, rightMotor, dist, dist, 50)
+	eva->runProcess(std::make_shared<StopByEncoderOnArcProcess>(leftMotor, rightMotor, dist + 55, dist + 55, 50)
 			>> grabber->close()
 			>> std::make_shared<StopByEncoderOnArcProcess>(leftMotor, rightMotor, -dist, -dist, 50));
 }
