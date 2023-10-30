@@ -25,6 +25,8 @@ public:
 	std::shared_ptr<Process> rotateToLineLeft(int minDistance, bool stop);
 	std::shared_ptr<Process> rotateToLineRight(int minDistance, bool stop);
 	std::shared_ptr<Process> alignToLine(bool stop);
+	std::shared_ptr<Process> rotateLeft(bool stop);
+	std::shared_ptr<Process> rotateRight(bool stop);
 
 private:
 	std::shared_ptr<EV3> eva;

@@ -2,7 +2,7 @@
 
 #include <processes.h>
 
-const int FULL_RANGE = 6200;
+const int FULL_RANGE = 6400;
 
 Crane::Crane(std::shared_ptr<ev3::Motor> motor)
 : motor(std::move(motor))
@@ -16,7 +16,7 @@ std::shared_ptr<ev3::Process> Crane::up() {
 	moveProcess->setEncoderThreshold(10);
 	moveProcess->setPowerThreshold(5);
 	return (moveProcess
-			& std::make_shared<ev3::WaitTimeProcess>(5.0f)) >> ev3::StopProcess(motor);
+			& std::make_shared<ev3::WaitTimeProcess>(7.0f)) >> ev3::StopProcess(motor);
 }
 
 std::shared_ptr<ev3::Process> Crane::down() {
@@ -25,7 +25,7 @@ std::shared_ptr<ev3::Process> Crane::down() {
 	moveProcess->setEncoderThreshold(10);
 	moveProcess->setPowerThreshold(5);
 	return (moveProcess
-			& std::make_shared<ev3::WaitTimeProcess>(5.0f)) >> ev3::StopProcess(motor);
+			& std::make_shared<ev3::WaitTimeProcess>(7.0f)) >> ev3::StopProcess(motor);
 }
 
 std::shared_ptr<ev3::Process> Crane::freeToMove() {
@@ -34,5 +34,5 @@ std::shared_ptr<ev3::Process> Crane::freeToMove() {
 	moveProcess->setEncoderThreshold(10);
 	moveProcess->setPowerThreshold(5);
 	return (moveProcess
-			& std::make_shared<ev3::WaitTimeProcess>(5.0f)) >> ev3::StopProcess(motor);
+			& std::make_shared<ev3::WaitTimeProcess>(7.0f)) >> ev3::StopProcess(motor);
 }

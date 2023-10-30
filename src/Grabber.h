@@ -2,6 +2,7 @@
 
 #include "Motor.h"
 #include "Process.h"
+#include "PID.h"
 
 #include <memory>
 
@@ -17,4 +18,5 @@ public:
 
 private:
 	std::shared_ptr<ev3::Motor> motor;
+	std::shared_ptr<ev3::PID> pid;
 };

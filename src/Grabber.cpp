@@ -3,7 +3,7 @@
 #include "processes.h"
 
 Grabber::Grabber(std::shared_ptr<ev3::Motor> motor)
-: motor(motor) {
+: motor(motor), pid(std::make_shared<ev3::PID>(0.3f, 0.001f, 1.2f)) {
 
 }
 
@@ -27,9 +27,11 @@ std::shared_ptr<ev3::Process> Grabber::open() {
 }
 
 std::shared_ptr<ev3::Process> Grabber::halfOpen() {
+	auto moveProcess = std::make_shared<ev3::MoveToEncoderAndStopProcess>(motor, 20, 50, pid);
+	moveProcess->setPowerThreshold(2);
+	moveProcess->setEncoderThreshold(2);
 	return std::make_shared<ev3::StopProcess>(motor)
-			>> (std::make_shared<ev3::MoveToEncoderAndStopProcess>(motor, 30, 50)
-			& std::make_shared<ev3::WaitTimeProcess>(0.5f))
+			>> (moveProcess & std::make_shared<ev3::WaitTimeProcess>(1.0f))
 			>> std::make_shared<ev3::StopProcess>(motor);
 }
 
