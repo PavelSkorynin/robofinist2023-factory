@@ -34,7 +34,7 @@ enum Action {
 	TURN_AROUND = 3,  // 180 grad
 };
 
-const int COLS = 4;
+const int COLS = 3;
 const int ROWS = 3;
 const int costForAction[] = { 2, 3, 3, 4 };
 const int dx[] = {1, 0, -1, 0};

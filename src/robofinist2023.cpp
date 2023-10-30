@@ -87,6 +87,10 @@ void goToNode(const std::vector<Action>& actions, bool upperShelf, bool barrel);
 void putBarrel();
 void outputBarrels();
 
+void waitBarrel();
+void grabBarrel();
+void putBarrelShort();
+
 int main()
 {
 	eva = std::make_shared<EV3>();
@@ -106,6 +110,28 @@ int main()
 	eva->setupLogger("/home/root/lms2012/prjs/robofinist2023/run.txt");
 
 	eva->runProcess(grabber->initialize() >> grabber->halfOpen());
+
+	currentPosition = {2, 0};
+	currentDirection = Direction::LEFT;
+
+	for (int i = 0; i < 4; ++i) {
+		int row = i % 2;
+		auto actions = findPathToBarrel({0, row});
+		goToNode(actions, false, true);
+		eva->runProcess(grabber->halfOpen());
+		waitBarrel();
+		grabBarrel();
+		currentPosition = {0, row};
+		currentDirection = Direction::LEFT;
+		actions = findPathToStore({2, row});
+		goToNode(actions, i / 2 == 1, false);
+		putBarrelShort();
+		debugWait(5);
+		currentPosition = {2, row};
+		currentDirection = Direction::LEFT;
+	}
+
+/*
 
 	for (int i = 0; i < NUMBER_OF_BARRELS; ++i) {
 		eva->wait(1);
@@ -144,22 +170,9 @@ int main()
 		putBarrel();
 		barrelsDone++;
 	}
-
+*/
 	return 0;
 }
-
-// MARK: Calibration
-
-//void calibration() {
-//	eva->setupLogger("/home/root/lms2012/prjs/robofinist2023/calibration.txt");
-//	// записываем показания датчиков линии
-//	eva->runProcess(MoveByEncoderOnArcProcess(leftMotor, rightMotor, 1000, 1000, 100)
-//			>> (StopProcess(leftMotor) | StopProcess(rightMotor)));
-//	// записываем показания датчика цвета
-//	eva->wait(2);
-//	eva.reset();
-//	exit(0);
-//}
 
 // MARK: Debug
 
@@ -261,13 +274,14 @@ void setupMotors() {
 // MARK: Strategy
 
 std::vector<Action> findPathToStore(Node position) {
+	position.x--;
 	eva->lcdPrintf(Color::BLACK, "pos %d %d, %d %d", currentPosition.x, currentPosition.y, position.x, position.y);
 	auto path = graph->pathFromNodeToNode(currentPosition, currentDirection, position);
 	eva->lcdPrintf(Color::BLACK, " path ");
 	for (auto action : path.first) {
 		eva->lcdPrintf(Color::BLACK, "%d ", (int)action);
 	}
-	debugWait(5);
+//	debugWait(5);
 
 	auto actions = path.first;
 	if (path.second == Direction::UP) {
@@ -326,7 +340,11 @@ void goToNode(const std::vector<Action>& actions, bool upperShelf, bool barrel) 
 	if (moveProcess == nullptr) {
 		eva->runProcess(craneProcess);
 	} else {
-		eva->runProcess(moveProcess | craneProcess);
+		if (barrel) {
+			eva->runProcess(moveProcess | craneProcess);
+		} else {
+			eva->runProcess((moveProcess | craneProcess) >> move->moveOnLineToCross(55, true));
+		}
 	}
 }
 
@@ -521,3 +539,25 @@ void outputBarrels() {
 //	}
 }
 
+void waitBarrel() {
+	eva->runProcess(LambdaProcess([&](ev3::time_t timestamp) {
+		return distSensor->getValue() > 20;
+	}));
+	eva->playSound(300, 0.3f, 0.3f);
+	eva->runProcess(grabber->open() >> WaitTimeProcess(2));
+}
+
+void grabBarrel() {
+	const int dist = 200;
+	eva->runProcess(std::make_shared<StopByEncoderOnArcProcess>(leftMotor, rightMotor, dist, dist, 50)
+			>> grabber->close()
+			>> std::make_shared<StopByEncoderOnArcProcess>(leftMotor, rightMotor, -dist, -dist, 50));
+}
+
+void putBarrelShort() {
+	eva->runProcess(move->moveOnLine(120, true) & std::make_shared<WaitTimeProcess>(1.0f));
+	eva->runProcess(grabber->open());
+	eva->runProcess(move->moveOnLine(100, true) & std::make_shared<WaitTimeProcess>(1.0f));
+	eva->runProcess(move->moveByEncoder(-120, -120, true));
+	eva->runProcess(move->rotateToLineRight(400, true));
+}
